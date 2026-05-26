@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	osexec "os/exec"
 	"strings"
 	"syscall"
 	"time"
@@ -113,7 +114,13 @@ func Handoff(plan Plan, opts Options) int {
 	st.LastAttached[plan.HostName] = deps.Now().UTC()
 	_ = deps.SaveState(deps.StatePath, st)
 
-	if err := deps.Exec(plan.Argv[0], plan.Argv, deps.Environ()); err != nil {
+	execPath, err := osexec.LookPath(plan.Argv[0])
+	if err != nil {
+		fmt.Fprintf(deps.Stderr, "limen: exec failed: %v\n", err)
+		return 127
+	}
+
+	if err := deps.Exec(execPath, plan.Argv, deps.Environ()); err != nil {
 		fmt.Fprintf(deps.Stderr, "limen: exec failed: %v\n", err)
 		return 127
 	}
