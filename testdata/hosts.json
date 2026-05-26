@@ -1,0 +1,15 @@
+{
+  "hosts": [
+    {
+      "name": "prod",
+      "hostname": "prod-server-01.example.com",
+      "user": "deploy",
+      "port": 22,
+      "description": "Production application servers. Deploys via fastlane."
+    },
+    {
+      "name": "builder",
+      "hostname": "builder.lan"
+    }
+  ]
+}
