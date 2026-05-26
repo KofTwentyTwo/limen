@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -138,6 +139,9 @@ func NewModel(app App) Model {
 			LastAttached: app.State.LastAttached[host.Name],
 		})
 	}
+	sort.SliceStable(hosts, func(i int, j int) bool {
+		return labelLess(hosts[i].DisplayName, hosts[j].DisplayName)
+	})
 
 	probeResults := app.ProbeResults
 	if probeResults == nil {
@@ -223,6 +227,13 @@ func (m Model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.updateFilterKey(msg)
 	}
 
+	if msg.Type == tea.KeyRunes && m.stage != stageNewSession && startsTypeahead(msg.String()) {
+		m.filtering = true
+		m.filter = string(msg.Runes)
+		m.clampCursor()
+		return m, nil
+	}
+
 	switch msg.String() {
 	case "ctrl+c":
 		m.result.ExitCode = 130
@@ -237,6 +248,12 @@ func (m Model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.stage != stageNewSession {
 			m.filtering = true
 			m.filter = ""
+		}
+		return m, nil
+	case "tab":
+		if m.stage != stageNewSession {
+			m.filtering = true
+			m.completeFilter()
 		}
 		return m, nil
 	case "up", "k":
@@ -280,6 +297,9 @@ func (m Model) updateFilterKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "enter":
 		m.filtering = false
 		return m.enter()
+	case "tab":
+		m.completeFilter()
+		return m, nil
 	case "backspace":
 		if len(m.filter) > 0 {
 			m.filter = m.filter[:len(m.filter)-1]
@@ -590,6 +610,9 @@ func (m Model) selectedHost() hostEntry {
 
 func (m Model) sessionEntries() []probe.SessionInfo {
 	sessions := append([]probe.SessionInfo(nil), m.selectedHost().Sessions...)
+	sort.SliceStable(sessions, func(i int, j int) bool {
+		return labelLess(sessions[i].Name, sessions[j].Name)
+	})
 	return sessions
 }
 
@@ -620,6 +643,35 @@ func (m *Model) setCursor(value int) {
 
 func (m *Model) clampCursor() {
 	m.setCursor(m.currentCursor())
+}
+
+func (m *Model) completeFilter() {
+	completion, ok := m.currentCompletion()
+	if !ok {
+		return
+	}
+	m.filter = completion
+	m.clampCursor()
+}
+
+func (m Model) currentCompletion() (string, bool) {
+	if m.stage == stageHosts {
+		indexes := m.filteredHostIndexes()
+		if len(indexes) == 0 {
+			return "", false
+		}
+		return m.hosts[indexes[m.hostCursor]].Name, true
+	}
+
+	rows := m.filteredSessionRows()
+	if len(rows) == 0 {
+		return "", false
+	}
+	row := rows[m.sessionCursor]
+	if row.New {
+		return "new session", true
+	}
+	return row.Session.Name, true
 }
 
 func (m Model) currentCursor() int {
@@ -760,4 +812,17 @@ func maxInt(a int, b int) int {
 		return a
 	}
 	return b
+}
+
+func labelLess(left string, right string) bool {
+	leftFolded := strings.ToLower(left)
+	rightFolded := strings.ToLower(right)
+	if leftFolded == rightFolded {
+		return left < right
+	}
+	return leftFolded < rightFolded
+}
+
+func startsTypeahead(key string) bool {
+	return key != "/" && key != "?" && key != "q"
 }

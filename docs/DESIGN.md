@@ -126,8 +126,8 @@ The first screen the user sees. Split-pane layout. Host list on the left, detail
 - The header line above the boxes says `limen` (left) and `DETAILS` (right), styled with the accent color.
 - Status dots: filled green circle (`●`) for online, hollow circle (`○`) for unreachable, dash (`—`) for "no sessions yet" indication when applicable.
 - Session count column right-aligned.
-- localhost is always the first entry. Its display name is `localhost (<short-hostname>)` where short-hostname comes from `hostname -s`. This makes it immediately clear which physical machine the user is sitting at.
-- Hosts are listed in the order declared in the config file. No automatic reordering. (Sorting by "most recently attached" is a future feature, called out as such.)
+- localhost's display name is `localhost (<short-hostname>)` where short-hostname comes from `hostname -s`. This makes it immediately clear which physical machine the user is sitting at.
+- Hosts are listed A-Z by display name, case-insensitive. The implicit localhost entry participates in this ordering.
 - A footer line shows the keyboard cheat sheet, dimmed.
 
 **Details pane content (for the highlighted host):**
@@ -149,6 +149,8 @@ The first screen the user sees. Split-pane layout. Host list on the left, detail
 | `End` / `G`    | Jump to last entry                                           |
 | `Enter`        | Accept; advance to stage 2 with this host as target          |
 | `/`            | Open search/filter mode (filter the list as you type)        |
+| Text input     | Start search/filter mode with the typed character            |
+| `Tab`          | Complete the filter to the highlighted host name             |
 | `Esc`          | If in search mode, cancel filter. Otherwise, escape semantics (see §5.5) |
 | `?`            | Toggle help overlay                                          |
 | `Ctrl+C` / `q` | Quit `limen` entirely without exec'ing anything. Exit code 130 / 0 respectively |
@@ -177,7 +179,7 @@ Same split-pane layout as stage 1, applied to sessions on the chosen host. The u
 **Layout requirements:**
 
 - The left-pane header shows the host name (e.g. `prod`), not the word "limen", so the user knows where they are.
-- `+ New session` is always the first entry, followed by a horizontal separator (`─` rule), followed by existing sessions in tmux's default ordering (most recently created first, matching `tmux ls`).
+- `+ New session` is always the first entry, followed by a horizontal separator (`─` rule), followed by existing sessions sorted A-Z by name, case-insensitive.
 - `●` marks the currently-attached session if any (i.e., the one a tmux client is currently inside). On localhost, there can be one. On remotes accessed via `ssh ... tmux ls`, attached-state comes from `#{session_attached}`.
 - `★` next to the window count marks the currently-attached session (redundant with the dot for users who scan the right column).
 
@@ -212,7 +214,7 @@ Same as stage 1, with the addition that when the highlighted entry is `+ New ses
 
 ### 5.4 Search / filter mode
 
-In either stage, `/` opens an inline filter. The list narrows to entries matching the typed substring (case-insensitive, fuzzy match optional but not required for v1 — simple substring is fine). Esc cancels filter. Enter selects the top match.
+In either picker stage, `/` opens an inline filter. Typing a letter while not already filtering also opens the inline filter and seeds it with that character, so the user can type directly toward the target host or session without first pressing `/`. The list narrows to entries matching the typed substring (case-insensitive, fuzzy match optional but not required for v1 — simple substring is fine). Tab completes the filter to the highlighted host or session name. Esc cancels filter. Enter selects the highlighted match.
 
 While filter is active, the cheat-sheet footer changes to indicate `esc cancel filter`.
 
