@@ -6,28 +6,22 @@ class Limen < Formula
 
   depends_on "tmux"
 
-  on_macos do
-    on_arm do
-      url "https://github.com/KofTwentyTwo/limen/releases/download/v#{version}/limen-macos-arm64"
-      sha256 "PLACEHOLDER_MACOS_ARM64_SHA256"
-    end
+  host_cpu = RbConfig::CONFIG.fetch("host_cpu", "")
+  macos_arm = OS.mac? && (Hardware::CPU.arm? || host_cpu == "arm64" || RUBY_PLATFORM.start_with?("arm64-darwin"))
+  linux_arm = OS.linux? && (Hardware::CPU.arm? || host_cpu == "aarch64" || host_cpu == "arm64")
 
-    on_intel do
-      url "https://github.com/KofTwentyTwo/limen/releases/download/v#{version}/limen-macos-amd64"
-      sha256 "PLACEHOLDER_MACOS_AMD64_SHA256"
-    end
-  end
-
-  on_linux do
-    on_arm do
-      url "https://github.com/KofTwentyTwo/limen/releases/download/v#{version}/limen-linux-arm64"
-      sha256 "PLACEHOLDER_LINUX_ARM64_SHA256"
-    end
-
-    on_intel do
-      url "https://github.com/KofTwentyTwo/limen/releases/download/v#{version}/limen-linux-amd64"
-      sha256 "PLACEHOLDER_LINUX_AMD64_SHA256"
-    end
+  if macos_arm
+    url "https://github.com/KofTwentyTwo/limen/releases/download/v#{version}/limen-macos-arm64"
+    sha256 "PLACEHOLDER_MACOS_ARM64_SHA256"
+  elsif OS.mac?
+    url "https://github.com/KofTwentyTwo/limen/releases/download/v#{version}/limen-macos-amd64"
+    sha256 "PLACEHOLDER_MACOS_AMD64_SHA256"
+  elsif linux_arm
+    url "https://github.com/KofTwentyTwo/limen/releases/download/v#{version}/limen-linux-arm64"
+    sha256 "PLACEHOLDER_LINUX_ARM64_SHA256"
+  else
+    url "https://github.com/KofTwentyTwo/limen/releases/download/v#{version}/limen-linux-amd64"
+    sha256 "PLACEHOLDER_LINUX_AMD64_SHA256"
   end
 
   def install
