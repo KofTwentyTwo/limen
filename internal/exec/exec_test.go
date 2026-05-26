@@ -3,6 +3,7 @@ package exec
 import (
 	"bytes"
 	"errors"
+	osexec "os/exec"
 	"reflect"
 	"strings"
 	"testing"
@@ -144,8 +145,12 @@ func TestHandoffUpdatesStateBeforeExec(t *testing.T) {
 	var execArgv []string
 	var execEnv []string
 	var stderr bytes.Buffer
+	wantPath, err := osexec.LookPath("sh")
+	if err != nil {
+		t.Skipf("sh is unavailable: %v", err)
+	}
 
-	code := Handoff(Plan{HostName: "prod", Argv: []string{"ssh", "-t", "prod", "tmux", "new"}}, Options{
+	code := Handoff(Plan{HostName: "prod", Argv: []string{"sh", "-c", "true"}}, Options{
 		StatePath: "/tmp/state.json",
 		Now:       func() time.Time { return now },
 		Environ:   func() []string { return []string{"TERM=xterm-256color"} },
@@ -181,7 +186,7 @@ func TestHandoffUpdatesStateBeforeExec(t *testing.T) {
 	if _, ok := saved.LastAttached["localhost"]; !ok {
 		t.Fatal("existing localhost timestamp was not preserved")
 	}
-	if execPath != "ssh" || !reflect.DeepEqual(execArgv, []string{"ssh", "-t", "prod", "tmux", "new"}) {
+	if execPath != wantPath || !reflect.DeepEqual(execArgv, []string{"sh", "-c", "true"}) {
 		t.Fatalf("exec saw %q %#v", execPath, execArgv)
 	}
 	if !reflect.DeepEqual(execEnv, []string{"TERM=xterm-256color"}) {
@@ -192,10 +197,44 @@ func TestHandoffUpdatesStateBeforeExec(t *testing.T) {
 	}
 }
 
+func TestHandoffResolvesExecutableBeforeExec(t *testing.T) {
+	wantPath, err := osexec.LookPath("sh")
+	if err != nil {
+		t.Skipf("sh is unavailable: %v", err)
+	}
+
+	var execPath string
+	var execArgv []string
+
+	code := Handoff(Plan{HostName: "localhost", Argv: []string{"sh", "-c", "true"}}, Options{
+		LoadState: func(path string) state.State {
+			return state.State{}
+		},
+		SaveState: func(path string, st state.State) error {
+			return nil
+		},
+		Exec: func(path string, argv []string, env []string) error {
+			execPath = path
+			execArgv = append([]string(nil), argv...)
+			return nil
+		},
+	})
+
+	if code != 0 {
+		t.Fatalf("Handoff exit code = %d, want 0", code)
+	}
+	if execPath != wantPath {
+		t.Fatalf("exec path = %q, want %q", execPath, wantPath)
+	}
+	if !reflect.DeepEqual(execArgv, []string{"sh", "-c", "true"}) {
+		t.Fatalf("exec argv = %#v", execArgv)
+	}
+}
+
 func TestHandoffTreatsStateSaveFailureAsAdvisory(t *testing.T) {
 	var calledExec bool
 
-	code := Handoff(Plan{HostName: "prod", Argv: []string{"ssh"}}, Options{
+	code := Handoff(Plan{HostName: "prod", Argv: []string{"sh"}}, Options{
 		LoadState: func(path string) state.State {
 			return state.State{}
 		},
