@@ -353,7 +353,7 @@ Each `internal/*` package has a focused responsibility and a small API. The UI p
 - `hosts` must be an array (may be empty — `limen` still works with just localhost).
 - Each entry must have non-empty `name` and `hostname`.
 - Duplicate `name` values cause a fatal startup error with a clear message: `limen: duplicate host name "<name>" in hosts.json`.
-- The reserved name `localhost` must not appear in the config; if it does, fatal error: `limen: "localhost" is reserved and cannot be declared in hosts.json`.
+- The reserved name `localhost` must not appear in the config; if it does, fatal error: `limen: "localhost" is reserved`.
 
 **Behavior when config is missing:** Print a hint to stderr (`limen: no hosts.json found at <path>; only localhost will be available`) and run with an empty host list. Stage 1 then shows just localhost.
 
@@ -654,7 +654,7 @@ limen/
           meta = {
             description = "Terminal launcher TUI for tmux + ssh";
             homepage = "https://github.com/<owner>/limen";
-            license = pkgs.lib.licenses.mit;
+            license = pkgs.lib.licenses.gpl3Only;
             mainProgram = "limen";
           };
         };
