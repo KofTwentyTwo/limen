@@ -16,7 +16,7 @@
           pname = "limen";
           version = "0.1.0";
           src = ./.;
-          vendorHash = null;
+          vendorHash = "sha256-zYQ6hMFBFDPNlViB7EmnxbXozardyYeHiUSiG4uS/9Y=";
 
           ldflags = [
             "-s"
