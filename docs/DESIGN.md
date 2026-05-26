@@ -214,7 +214,7 @@ Same as stage 1, with the addition that when the highlighted entry is `+ New ses
 
 ### 5.4 Search / filter mode
 
-In either picker stage, `/` opens an inline filter. Typing a letter while not already filtering also opens the inline filter and seeds it with that character, so the user can type directly toward the target host or session without first pressing `/`. The list narrows to entries matching the typed substring (case-insensitive, fuzzy match optional but not required for v1 — simple substring is fine). Tab completes the filter to the highlighted host or session name. Esc cancels filter. Enter selects the highlighted match.
+In either picker stage, `/` opens an inline filter. Typing a letter while not already filtering also opens the inline filter and seeds it with that character, so the user can type directly toward the target host or session without first pressing `/`. The list narrows to entries whose visible host or session name starts with the typed prefix, case-insensitive. Tab completes the filter to the highlighted host or session name. Arrow keys continue to navigate the filtered matches. Esc cancels filter. Enter selects the highlighted match.
 
 While filter is active, the cheat-sheet footer changes to indicate `esc cancel filter`.
 

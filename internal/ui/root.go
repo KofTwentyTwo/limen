@@ -300,6 +300,18 @@ func (m Model) updateFilterKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "tab":
 		m.completeFilter()
 		return m, nil
+	case "up":
+		m.moveCursor(-1)
+		return m, nil
+	case "down":
+		m.moveCursor(1)
+		return m, nil
+	case "home":
+		m.setCursor(0)
+		return m, nil
+	case "end":
+		m.setCursor(m.entryCount() - 1)
+		return m, nil
 	case "backspace":
 		if len(m.filter) > 0 {
 			m.filter = m.filter[:len(m.filter)-1]
@@ -692,7 +704,7 @@ func (m Model) filteredHostIndexes() []int {
 	indexes := make([]int, 0, len(m.hosts))
 	filter := strings.ToLower(m.filter)
 	for i, host := range m.hosts {
-		if filter == "" || strings.Contains(strings.ToLower(host.DisplayName), filter) || strings.Contains(strings.ToLower(host.Connection), filter) {
+		if filter == "" || startsWithFold(host.DisplayName, filter) {
 			indexes = append(indexes, i)
 		}
 	}
@@ -703,11 +715,11 @@ func (m Model) filteredSessionRows() []sessionRow {
 	filter := strings.ToLower(m.filter)
 	rows := make([]sessionRow, 0, len(m.sessionEntries())+1)
 
-	if filter == "" || strings.Contains("new session", filter) {
+	if filter == "" || startsWithFold("new session", filter) {
 		rows = append(rows, sessionRow{New: true})
 	}
 	for _, session := range m.sessionEntries() {
-		if filter == "" || strings.Contains(strings.ToLower(session.Name), filter) {
+		if filter == "" || startsWithFold(session.Name, filter) {
 			rows = append(rows, sessionRow{Session: session})
 		}
 	}
@@ -825,4 +837,8 @@ func labelLess(left string, right string) bool {
 
 func startsTypeahead(key string) bool {
 	return key != "/" && key != "?" && key != "q"
+}
+
+func startsWithFold(value string, foldedPrefix string) bool {
+	return strings.HasPrefix(strings.ToLower(value), foldedPrefix)
 }
