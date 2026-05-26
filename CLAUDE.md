@@ -8,29 +8,30 @@ Project memory for AI assistants working in this repo. Read this first.
 
 ## Current status
 
-**Design phase.** No Go source yet. The repository contains:
+**Early implementation.** The repository contains:
 
 - `docs/DESIGN.md` — full design and requirements document.
-- Standard repo scaffolding (README, LICENSE, CONTRIBUTING, etc.).
-- `.github/` — CI workflow placeholder, issue templates, PR template.
+- `internal/` packages for config, state, probing, SSH, tmux parsing, exec planning, formatting, and UI.
+- `main.go`, `go.mod`, and `flake.nix` for the working binary and Nix package.
+- `.github/` — CI and release workflows, issue templates, PR template.
 
-Implementation work has not started. The next milestone is to:
+The next implementation milestones are to:
 
-1. Add `go.mod`, `main.go`, and a minimal `internal/` package skeleton matching §6.3 of `DESIGN.md`.
-2. Wire up the Nix flake (`flake.nix`) so `nix run` produces a binary.
-3. Implement stages incrementally — config parsing first, then probing, then UI.
+1. Harden the terminal UI with real-world tmux and SSH smoke testing.
+2. Keep release automation green for tagged releases and downstream package managers.
+3. Continue from `docs/DESIGN.md`; if behavior changes, update the design doc in the same PR.
 
 ## Key conventions
 
 | Topic              | Convention                                                                |
 | ------------------ | ------------------------------------------------------------------------- |
-| Language           | Go 1.21+, no CGO                                                          |
+| Language           | Go 1.24+, no CGO                                                          |
 | TUI framework      | `bubbletea` + `lipgloss`                                                  |
 | Default branch     | `develop` (PRs target this); `main` reserved for tagged releases          |
 | Commit style       | Conventional Commits (`feat:`, `fix:`, `docs:` …) — see `CONTRIBUTING.md` |
 | License            | GPL-3.0                                                                   |
 | Build              | Nix flake (`packages.default`) + plain `go build` for dev                 |
-| Release            | goreleaser via GitHub Actions on tag push                                 |
+| Release            | GitHub Actions tag workflow, direct Go cross-builds, GitHub Releases, Homebrew tap |
 | Test framework     | Standard `testing` package; `teatest` for TUI integration                 |
 | Go modules         | One `internal/` per concern (config, state, probe, ssh, ui, exec, format) |
 
@@ -47,8 +48,8 @@ Implementation work has not started. The next milestone is to:
 Targets in order of priority:
 
 1. **Nix flake** (`nix run github:KofTwentyTwo/limen`) — primary distribution channel.
-2. **Homebrew tap** at `KofTwentyTwo/homebrew-tap` (not yet created) — `brew install KofTwentyTwo/tap/limen`.
-3. **GitHub Releases** with goreleaser-built binaries for darwin/linux × amd64/arm64.
+2. **Homebrew tap** at `KofTwentyTwo/homebrew-tap` — `brew install KofTwentyTwo/tap/limen`.
+3. **GitHub Releases** with direct Go-built binaries for macOS/Linux × amd64/arm64.
 
 Eventual goal: submit to `homebrew-core` once the tool stabilizes.
 

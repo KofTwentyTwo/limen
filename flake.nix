@@ -10,17 +10,19 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+        version = "0.1.0";
       in
       {
         packages.default = pkgs.buildGoModule {
           pname = "limen";
-          version = "0.1.0";
+          inherit version;
           src = ./.;
           vendorHash = "sha256-zYQ6hMFBFDPNlViB7EmnxbXozardyYeHiUSiG4uS/9Y=";
 
           ldflags = [
             "-s"
             "-w"
+            "-X main.version=${version}"
           ];
 
           meta = {
