@@ -131,6 +131,29 @@ func TestTypingBoundNavigationLetterStartsHostFilter(t *testing.T) {
 	}
 }
 
+func TestHostFilterOnlyMatchesNamePrefixes(t *testing.T) {
+	model := NewModel(App{
+		Config: config.Config{Hosts: []config.Host{
+			{Name: "prod", Hostname: "prod.example.com"},
+			{Name: "sandbox", Hostname: "box.example.com"},
+		}},
+		ProbeResults: closedProbeResults(),
+		Hostname:     "renova.local",
+	})
+
+	for _, r := range "box" {
+		model = press(t, model, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+	}
+
+	view := model.View()
+	if strings.Contains(view, "sandbox") || strings.Contains(view, "box.example.com") {
+		t.Fatalf("View() = %q, want non-prefix host and connection filtered out", view)
+	}
+	if !strings.Contains(view, "no matching hosts") {
+		t.Fatalf("View() = %q, want no matching hosts", view)
+	}
+}
+
 func TestSessionFilterSelectsMatchingSession(t *testing.T) {
 	model := modelWithProdSessions(t,
 		probe.SessionInfo{Name: "api", Windows: 3},
@@ -150,6 +173,26 @@ func TestSessionFilterSelectsMatchingSession(t *testing.T) {
 	}
 	if !model.result.HasPlan || !reflect.DeepEqual(model.result.Plan, want) {
 		t.Fatalf("result = %#v, want plan %#v", model.result, want)
+	}
+}
+
+func TestSessionFilterOnlyMatchesNamePrefixes(t *testing.T) {
+	model := modelWithProdSessions(t,
+		probe.SessionInfo{Name: "api", Windows: 3},
+		probe.SessionInfo{Name: "ops", Windows: 1},
+	)
+	model = press(t, model, tea.KeyMsg{Type: tea.KeyDown})
+	model = press(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+	for _, r := range "pi" {
+		model = press(t, model, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+	}
+
+	view := model.View()
+	if strings.Contains(view, "api") {
+		t.Fatalf("View() = %q, want substring session filtered out", view)
+	}
+	if !strings.Contains(view, "no matching sessions") {
+		t.Fatalf("View() = %q, want no matching sessions", view)
 	}
 }
 
@@ -176,6 +219,29 @@ func TestTypingAndTabCompleteSessionSelection(t *testing.T) {
 	}
 	if !model.result.HasPlan || !reflect.DeepEqual(model.result.Plan, want) {
 		t.Fatalf("result = %#v, want plan %#v", model.result, want)
+	}
+}
+
+func TestSessionArrowKeysNavigateWhileFiltering(t *testing.T) {
+	model := modelWithProdSessions(t,
+		probe.SessionInfo{Name: "api", Windows: 3},
+		probe.SessionInfo{Name: "app", Windows: 1},
+		probe.SessionInfo{Name: "ops", Windows: 1},
+	)
+	model = press(t, model, tea.KeyMsg{Type: tea.KeyDown})
+	model = press(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+	for _, r := range "a" {
+		model = press(t, model, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+	}
+
+	model = press(t, model, tea.KeyMsg{Type: tea.KeyDown})
+	if model.sessionCursor != 1 {
+		t.Fatalf("sessionCursor = %d, want 1 after arrow down in filter mode", model.sessionCursor)
+	}
+
+	model = press(t, model, tea.KeyMsg{Type: tea.KeyUp})
+	if model.sessionCursor != 0 {
+		t.Fatalf("sessionCursor = %d, want 0 after arrow up in filter mode", model.sessionCursor)
 	}
 }
 
