@@ -39,6 +39,7 @@ Examples:
 - Go: standard `gofmt`. `golangci-lint` runs in CI (will be added once Go code lands).
 - Markdown: 100-column soft wrap; tables and code blocks may exceed.
 - Comments: explain *why*, not *what*. Code shows what.
+- Local tool dependencies are listed in [`docs/DEV-TOOLS.md`](docs/DEV-TOOLS.md).
 
 ## Tests
 
@@ -60,7 +61,12 @@ Examples:
 
 ## Releases
 
-Tags trigger goreleaser via GitHub Actions, which cross-compiles for darwin/linux × amd64/arm64 and publishes binaries to the GitHub Releases page. See [`docs/DESIGN.md` §10.4](docs/DESIGN.md).
+Tags trigger GitHub Actions, which runs the Go checks, builds macOS/Linux binaries for amd64/arm64, publishes GitHub Release assets, and updates the `KofTwentyTwo/homebrew-tap` formula. See [`docs/DESIGN.md` §10.4](docs/DESIGN.md).
+
+Release prerequisites:
+- `KofTwentyTwo/homebrew-tap` must exist.
+- The `limen` repository must have a `HOMEBREW_TAP_TOKEN` Actions secret with contents read/write access to `KofTwentyTwo/homebrew-tap`.
+- The release tag must use the `vMAJOR.MINOR.PATCH` form, for example `v0.1.0`.
 
 ## Code of conduct
 

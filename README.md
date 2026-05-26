@@ -4,7 +4,7 @@
 
 A terminal launcher TUI for tmux and SSH. The first thing you see when you open a new terminal: pick a host, pick a session, get to work.
 
-**Status:** Design phase. No working binary yet — see [`docs/DESIGN.md`](docs/DESIGN.md) for the spec we're building toward.
+**Status:** Early implementation. The binary can launch the host and session picker; see [`docs/DESIGN.md`](docs/DESIGN.md) for the canonical spec.
 
 ---
 
@@ -38,11 +38,26 @@ Press `Esc` at any point and `limen` drops you into a fresh unnamed tmux session
 
 ## Install
 
-Coming soon. The design targets these distribution channels:
+Install with Nix:
 
-- **Nix flake** — `nix run github:KofTwentyTwo/limen`
-- **Homebrew tap** — `brew install KofTwentyTwo/tap/limen` (planned)
-- **Binary releases** — GitHub Releases page (planned)
+```bash
+nix run github:KofTwentyTwo/limen
+```
+
+Install with Homebrew after the first tagged release:
+
+```bash
+brew install KofTwentyTwo/tap/limen
+```
+
+Prebuilt binaries are published to the GitHub Releases page for:
+
+| Platform | Architecture | Binary |
+|----------|--------------|--------|
+| Linux | x64 | `limen-linux-amd64` |
+| Linux | ARM64 | `limen-linux-arm64` |
+| macOS | Intel | `limen-macos-amd64` |
+| macOS | Apple Silicon | `limen-macos-arm64` |
 
 ## Configuration
 
@@ -70,7 +85,7 @@ The full design and requirements document lives at [`docs/DESIGN.md`](docs/DESIG
 
 ## Status & roadmap
 
-This repository currently contains only the design document and standard repo scaffolding. Implementation will land on the `develop` branch.
+Implementation lands on the `develop` branch. Tagged releases publish prebuilt binaries and update the Homebrew tap.
 
 ## Contributing
 

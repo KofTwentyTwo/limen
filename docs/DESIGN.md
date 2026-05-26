@@ -616,7 +616,7 @@ limen/
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml         # go test + go vet on push/PR
-│       └── release.yml    # tag → goreleaser → binaries + checksums
+│       └── release.yml    # tag -> Go cross-builds -> releases + Homebrew tap
 ├── docs/
 │   ├── DESIGN.md          # This document (or a slightly edited copy)
 │   └── README.md          # User-facing docs
@@ -626,7 +626,6 @@ limen/
 ├── go.mod
 ├── go.sum
 ├── main.go
-├── .goreleaser.yaml       # Cross-compile darwin + linux, amd64 + arm64
 ├── LICENSE                # GPL-3.0 (matches KofTwentyTwo OSS standard)
 └── README.md              # Repo top-level readme
 ```
@@ -679,7 +678,7 @@ home.packages = [ inputs.limen.packages.${system}.default ];
 
 Path A — **personal tap (preferred for initial release):**
 
-The user creates `github.com/<owner>/homebrew-tap` with a `Formula/limen.rb` that fetches the GitHub release tarball and `go build`s, OR (better) fetches the pre-built binary published by goreleaser. Users install via `brew install <owner>/tap/limen`.
+The user creates `github.com/<owner>/homebrew-tap` with a `Formula/limen.rb` that fetches the pre-built binary published to GitHub Releases. Users install via `brew install <owner>/tap/limen`.
 
 Path B — **homebrew-core (later):**
 
@@ -700,10 +699,10 @@ git push origin v0.1.0
 
 GitHub Actions runs `release.yml`:
 1. Checks out at the tag.
-2. Runs `goreleaser release --clean`.
-3. goreleaser cross-compiles for `darwin/amd64`, `darwin/arm64`, `linux/amd64`, `linux/arm64`.
-4. Uploads release artifacts (tarballs + `checksums.txt`) to the GitHub release page.
-5. (Optional) Updates the homebrew tap formula via a goreleaser hook.
+2. Runs `go vet`, `go test -race -count=1 ./...`, and `go build ./...`.
+3. Cross-compiles with CGO disabled for `darwin/amd64`, `darwin/arm64`, `linux/amd64`, `linux/arm64`.
+4. Uploads release artifacts and `checksums.txt` to the GitHub release page.
+5. Updates the `KofTwentyTwo/homebrew-tap` formula with release URLs and SHA256 hashes using `HOMEBREW_TAP_TOKEN`.
 
 ---
 
