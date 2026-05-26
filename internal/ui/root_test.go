@@ -35,6 +35,20 @@ func TestTeatestHostSelectionAdvancesToSessionPicker(t *testing.T) {
 	}, teatest.WithDuration(2*time.Second))
 }
 
+func TestHostsAreSortedByDisplayName(t *testing.T) {
+	model := NewModel(App{
+		Config: config.Config{Hosts: []config.Host{
+			{Name: "zeta", Hostname: "zeta.example.com"},
+			{Name: "alpha", Hostname: "alpha.example.com"},
+		}},
+		ProbeResults: closedProbeResults(),
+		Hostname:     "renova.local",
+	})
+
+	view := model.View()
+	assertOrder(t, view, "alpha", "localhost (renova)", "zeta")
+}
+
 func TestSelectExistingRemoteSessionProducesAttachPlan(t *testing.T) {
 	model := NewModel(testApp())
 	model = updateModel(t, model, probeMsg(probe.ProbeResult{
@@ -56,6 +70,67 @@ func TestSelectExistingRemoteSessionProducesAttachPlan(t *testing.T) {
 	}
 }
 
+func TestSessionsAreSortedByName(t *testing.T) {
+	model := modelWithProdSessions(t,
+		probe.SessionInfo{Name: "zeta", Windows: 1},
+		probe.SessionInfo{Name: "api", Windows: 3},
+		probe.SessionInfo{Name: "ops", Windows: 1},
+	)
+	model = press(t, model, tea.KeyMsg{Type: tea.KeyDown})
+	model = press(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+
+	view := model.View()
+	assertOrder(t, view, "+ New session", "api", "ops", "zeta")
+}
+
+func TestTypingAndTabCompleteHostSelection(t *testing.T) {
+	model := NewModel(App{
+		Config: config.Config{Hosts: []config.Host{
+			{Name: "prod", Hostname: "prod.example.com"},
+			{Name: "builder", Hostname: "builder.example.com"},
+		}},
+		ProbeResults: closedProbeResults(),
+		Hostname:     "renova.local",
+	})
+
+	for _, r := range "pr" {
+		model = press(t, model, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+	}
+	model = press(t, model, tea.KeyMsg{Type: tea.KeyTab})
+
+	if !model.filtering || model.filter != "prod" {
+		t.Fatalf("filtering = %v, filter = %q; want completed prod filter", model.filtering, model.filter)
+	}
+
+	model = press(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+	if model.stage != stageSessions {
+		t.Fatalf("stage = %v, want sessions", model.stage)
+	}
+	if got := model.selectedHost().Name; got != "prod" {
+		t.Fatalf("selected host = %q, want prod", got)
+	}
+}
+
+func TestTypingBoundNavigationLetterStartsHostFilter(t *testing.T) {
+	model := NewModel(App{
+		Config: config.Config{Hosts: []config.Host{
+			{Name: "gamma", Hostname: "gamma.example.com"},
+			{Name: "prod", Hostname: "prod.example.com"},
+		}},
+		ProbeResults: closedProbeResults(),
+		Hostname:     "renova.local",
+	})
+
+	model = press(t, model, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'g'}})
+
+	if !model.filtering || model.filter != "g" {
+		t.Fatalf("filtering = %v, filter = %q; want g filter", model.filtering, model.filter)
+	}
+	if view := model.View(); strings.Contains(view, "prod") {
+		t.Fatalf("View() = %q, want prod filtered out", view)
+	}
+}
+
 func TestSessionFilterSelectsMatchingSession(t *testing.T) {
 	model := modelWithProdSessions(t,
 		probe.SessionInfo{Name: "api", Windows: 3},
@@ -69,6 +144,32 @@ func TestSessionFilterSelectsMatchingSession(t *testing.T) {
 	}
 	model = press(t, model, tea.KeyMsg{Type: tea.KeyEnter})
 
+	want := limenexec.Plan{
+		HostName: "prod",
+		Argv:     []string{"ssh", "-t", "deploy@prod.example.com", "tmux", "attach", "-t", "ops"},
+	}
+	if !model.result.HasPlan || !reflect.DeepEqual(model.result.Plan, want) {
+		t.Fatalf("result = %#v, want plan %#v", model.result, want)
+	}
+}
+
+func TestTypingAndTabCompleteSessionSelection(t *testing.T) {
+	model := modelWithProdSessions(t,
+		probe.SessionInfo{Name: "api", Windows: 3},
+		probe.SessionInfo{Name: "ops", Windows: 1},
+	)
+	model = press(t, model, tea.KeyMsg{Type: tea.KeyDown})
+	model = press(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+	for _, r := range "op" {
+		model = press(t, model, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+	}
+	model = press(t, model, tea.KeyMsg{Type: tea.KeyTab})
+
+	if !model.filtering || model.filter != "ops" {
+		t.Fatalf("filtering = %v, filter = %q; want completed ops filter", model.filtering, model.filter)
+	}
+
+	model = press(t, model, tea.KeyMsg{Type: tea.KeyEnter})
 	want := limenexec.Plan{
 		HostName: "prod",
 		Argv:     []string{"ssh", "-t", "deploy@prod.example.com", "tmux", "attach", "-t", "ops"},
@@ -326,8 +427,6 @@ func TestWaitForProbeReturnsResultAndDoneMessages(t *testing.T) {
 }
 
 func testApp() App {
-	probes := make(chan probe.ProbeResult)
-	close(probes)
 	return App{
 		Config: config.Config{Hosts: []config.Host{{
 			Name:        "prod",
@@ -338,10 +437,16 @@ func testApp() App {
 		State: state.State{LastAttached: map[string]time.Time{
 			"prod": time.Date(2026, 5, 26, 13, 45, 0, 0, time.UTC),
 		}},
-		ProbeResults: probes,
+		ProbeResults: closedProbeResults(),
 		Now:          func() time.Time { return time.Date(2026, 5, 26, 14, 45, 0, 0, time.UTC) },
 		Hostname:     "renova.local",
 	}
+}
+
+func closedProbeResults() <-chan probe.ProbeResult {
+	probes := make(chan probe.ProbeResult)
+	close(probes)
+	return probes
 }
 
 func modelWithProdSessions(t *testing.T, sessions ...probe.SessionInfo) Model {
@@ -351,6 +456,22 @@ func modelWithProdSessions(t *testing.T, sessions ...probe.SessionInfo) Model {
 		Reachable: true,
 		Sessions:  sessions,
 	}))
+}
+
+func assertOrder(t *testing.T, text string, values ...string) {
+	t.Helper()
+
+	last := -1
+	for _, value := range values {
+		index := strings.Index(text, value)
+		if index == -1 {
+			t.Fatalf("text missing %q:\n%s", value, text)
+		}
+		if index < last {
+			t.Fatalf("%q appeared before prior value in:\n%s", value, text)
+		}
+		last = index
+	}
 }
 
 func press(t *testing.T, model Model, key tea.KeyMsg) Model {
