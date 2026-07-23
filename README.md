@@ -17,22 +17,7 @@ A two-stage terminal launcher TUI for tmux and SSH. The first thing you see when
 
 Pressing `Esc` at any stage drops you into a fresh unnamed tmux session at the selected host with zero deliberation tax.
 
-```
-  ╭─ limen ─────────────────────────╮   ╭─ DETAILS ──────────────────────────╮
-  │                                 │   │                                    │
-  │ ● localhost (renova)   3 sess.  │   │  prod                              │
-  │ ● prod                 2 sess.  │ ◀ │  ──────────────────────────────────│
-  │ ● dev                  1 sess.  │   │  deploy@prod-server-01.example.com │
-  │ ○ builder              unreach. │   │                                    │
-  │ ● sandbox              —        │   │  Status:        ● online           │
-  │                                 │   │  Sessions:      2  (api, ops)      │
-  │                                 │   │  Last attached: 2 hours ago        │
-  │                                 │   │                                    │
-  │                                 │   │  Production application servers.   │
-  │ ╰─────────────────────────────────╯   ╰────────────────────────────────────╯
-
-   ↑↓ navigate   ·   enter connect   ·   / search   ·   ?  help   ·   esc skip
-```
+![limen Launcher Architecture & Session Flow](docs/architecture.png)
 
 ---
 
