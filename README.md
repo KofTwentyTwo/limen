@@ -2,20 +2,20 @@
 
 > *Latin: "threshold". The doorsill one crosses when entering.*
 
-A terminal launcher TUI for tmux and SSH. The first thing you see when you open a new terminal: pick a host, pick a session, get to work.
+A two-stage terminal launcher TUI for tmux and SSH. The first thing you see when opening a new terminal: pick a host, pick a session, get to work.
 
-**Status:** Early implementation. The binary can launch the host and session picker; see [`docs/DESIGN.md`](docs/DESIGN.md) for the canonical spec.
+**Status**: Active implementation. The TUI launches host and session pickers. See [`docs/DESIGN.md`](docs/DESIGN.md) for the canonical architecture specification.
 
 ---
 
-## What it does
+## What It Does
 
-Replaces tmux's name-prompt-on-launch with a two-stage TUI:
+`limen` replaces tmux's default name-prompt-on-launch with an interactive, keyboard-driven TUI:
 
-1. **Host picker** — choose `localhost` or one of your declared SSH targets. Live status dots show which hosts are reachable and how many sessions each has.
-2. **Session picker** — pick an existing tmux session to attach to, or create a new one with a name. Works the same whether the host is local or remote.
+1. **Host Picker**: Choose `localhost` or one of your declared SSH targets. Live status indicators show reachability and active session counts.
+2. **Session Picker**: Pick an existing tmux session to attach to, or spawn a new named session. Behaves consistently across local and remote targets.
 
-Press `Esc` at any point and `limen` drops you into a fresh unnamed tmux session at the appropriate host. No deliberation tax.
+Pressing `Esc` at any stage drops you into a fresh unnamed tmux session at the selected host with zero deliberation tax.
 
 ```
   ╭─ limen ─────────────────────────╮   ╭─ DETAILS ──────────────────────────╮
@@ -29,39 +29,71 @@ Press `Esc` at any point and `limen` drops you into a fresh unnamed tmux session
   │                                 │   │  Last attached: 2 hours ago        │
   │                                 │   │                                    │
   │                                 │   │  Production application servers.   │
-  ╰─────────────────────────────────╯   ╰────────────────────────────────────╯
+  │ ╰─────────────────────────────────╯   ╰────────────────────────────────────╯
 
    ↑↓ navigate   ·   enter connect   ·   / search   ·   ?  help   ·   esc skip
 ```
 
 ---
 
-## Install
+## Tech Stack & Architecture
 
-Install with Nix:
+- **Language & Runtime**: Go 1.22+
+- **TUI Engine**: [Charm Bubble Tea](https://github.com/charmbracelet/bubbletea) (Elm Architecture) & [Lip Gloss](https://github.com/charmbracelet/lipgloss) styling
+- **Orchestration**: `tmux` IPC & native OpenSSH background client stream
+- **Configuration**: Single JSON fleet declaration at `~/.config/limen/hosts.json`
 
-```bash
-nix run github:KofTwentyTwo/limen
-```
+---
 
-Install with Homebrew after the first tagged release:
+## Installation
 
+### Homebrew (macOS / Linux)
 ```bash
 brew install KofTwentyTwo/tap/limen
 ```
 
-Prebuilt binaries are published to the GitHub Releases page for:
+### Nix Flake Run
+```bash
+nix run github:KofTwentyTwo/limen
+```
 
-| Platform | Architecture | Binary |
-|----------|--------------|--------|
-| Linux | x64 | `limen-linux-amd64` |
-| Linux | ARM64 | `limen-linux-arm64` |
-| macOS | Intel | `limen-macos-amd64` |
-| macOS | Apple Silicon | `limen-macos-arm64` |
+### Binary Releases
+Pre-built binaries are available on the [Releases](https://github.com/KofTwentyTwo/limen/releases) page:
 
-## Configuration
+| Platform | Architecture | Binary Name |
+| :--- | :--- | :--- |
+| **Linux** | x86_64 | `limen-linux-amd64` |
+| **Linux** | ARM64 | `limen-linux-arm64` |
+| **macOS** | Intel | `limen-macos-amd64` |
+| **macOS** | Apple Silicon | `limen-macos-arm64` |
 
-A single JSON file at `~/.config/limen/hosts.json` declares your fleet. Example:
+---
+
+## Local Build & Verification
+
+### Build from Source
+```bash
+# Build binary
+go build -ldflags="-s -w" -o bin/limen ./cmd/limen
+
+# Or build via Nix
+nix build
+```
+
+### Quality Gates & Verification
+```bash
+# 1. Run Unit & Integration Tests
+go test -v ./...
+
+# 2. Run Go Linter & Vet
+go vet ./...
+```
+
+---
+
+## Fleet Configuration
+
+Declare target hosts in `~/.config/limen/hosts.json`:
 
 ```json
 {
@@ -73,30 +105,10 @@ A single JSON file at `~/.config/limen/hosts.json` declares your fleet. Example:
 }
 ```
 
-`localhost` is implicit and always available — never declare it in this file.
-
-See [`docs/DESIGN.md` §7.1](docs/DESIGN.md) for the full schema.
+`localhost` is implicit and managed automatically by `limen`. See [`docs/DESIGN.md`](docs/DESIGN.md) for full schema specifications.
 
 ---
-
-## Design
-
-The full design and requirements document lives at [`docs/DESIGN.md`](docs/DESIGN.md). That document is the source of truth for what `limen` is and should be; implementation work proceeds from there.
-
-## Status & roadmap
-
-Implementation lands on the `develop` branch. Tagged releases publish prebuilt binaries and update the Homebrew tap.
-
-## Contributing
-
-See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## License
 
 [GPL-3.0](LICENSE).
-
-## See also
-
-- [tmux](https://github.com/tmux/tmux/wiki) — the multiplexer `limen` orchestrates
-- [bubbletea](https://github.com/charmbracelet/bubbletea) — the TUI framework `limen` is built on
-- [WezTerm](https://wezfurlong.org/wezterm/) — the terminal `limen` is designed to live inside
